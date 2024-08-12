@@ -1,6 +1,9 @@
 #![allow(unused)]
-use std::{collections::{HashMap, HashSet, VecDeque}, hash::Hash, rc::Rc};
-
+use std::{
+    collections::{HashMap, HashSet, VecDeque},
+    hash::Hash,
+    rc::Rc,
+};
 
 pub struct Graph<T> {
     // We have a set of nodes called Vertex set
@@ -14,40 +17,59 @@ pub struct Graph<T> {
 
 impl<T: Eq + PartialEq + Hash> Graph<T> {
     pub fn new() -> Graph<T> {
-        todo!();
+        Graph {
+            edges: HashMap::new(),
+        }
     }
 
     pub fn vertices(&self) -> Vec<Rc<T>> {
-        todo!();
+        self.edges.keys().cloned().collect()
     }
 
     pub fn insert_vertex(&mut self, u: T) {
-        todo!();
+        self.edges.entry(Rc::new(u)).or_insert(HashSet::new());
     }
 
     pub fn insert_edge(&mut self, u: T, v: T) {
         // node u can already be in the HashMap or it is not in the HashMap
-        todo!();
+        let u_edge = Rc::new(u);
+        let v_edge = Rc::new(v);
+
+        self.edges
+            .entry(u_edge)
+            .or_insert_with(HashSet::new)
+            .insert(v_edge.clone());
+        self.edges.entry(v_edge).or_insert_with(HashSet::new);
     }
 
     pub fn remove_edge(&mut self, u: &T, v: &T) {
-        todo!();
+        if let Some(neighbours) = self.edges.get_mut(u) {
+            neighbours.retain(|x| x.as_ref() != v)
+        }
     }
 
     pub fn remove_vertex(&mut self, u: &T) {
-        todo!();
+        self.edges.remove(u);
+
+        for (_, neighbours) in self.edges.iter_mut() {
+            neighbours.retain(|v| v.as_ref() != u);
+        }
     }
 
     pub fn contains_vertex(&self, u: &T) -> bool {
-        todo!();
+        self.edges.contains_key(u)
     }
 
     pub fn contains_edge(&mut self, u: &T, v: &T) -> bool {
-        todo!();
+        self.edges
+            .get(u)
+            .map_or(false, |edges| edges.iter().any(|x| x.as_ref() == v))
     }
 
     pub fn neighbors(&self, u: &T) -> Vec<Rc<T>> {
-        todo!();
+        self.edges.get(u).map_or(Vec::new(), |neighbours| {
+            neighbours.iter().cloned().collect()
+        })
     }
 
     pub fn path_exists_between(&self, u: &T, v: &T) -> bool {
@@ -55,7 +77,28 @@ impl<T: Eq + PartialEq + Hash> Graph<T> {
         // bfs requires a queue data structure refer https://doc.rust-lang.org/std/collections/struct.VecDeque.html
         // dfs requires recursion
         // in both cases keep track of visited nodes using HashSet
-        todo!();
+        let mut visited = HashSet::new();
+        let mut queue = VecDeque::new();
+
+        if let Some(start) = self.edges.get_key_value(u) {
+            queue.push_back(start.0.clone());
+        } else {
+            return false;
+        }
+
+        while let Some(current) = queue.pop_front() {
+            if current.as_ref() == v {
+                return true;
+            }
+
+            if visited.insert(current.clone()) {
+                if let Some(neighbours) = self.edges.get(&current) {
+                    queue.extend(neighbours.iter().cloned());
+                }
+            }
+        }
+
+        false
     }
 }
 
@@ -169,4 +212,3 @@ mod tests {
         assert!(graph.contains_vertex(&"C"));
     }
 }
-
